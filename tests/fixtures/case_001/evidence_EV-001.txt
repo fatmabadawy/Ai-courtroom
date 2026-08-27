@@ -1,0 +1,15 @@
+CONTRACT CLAUSE — ACME Corp / WidgetCo Supply Agreement (Exhibit A)
+
+Dated: 2024-01-15
+
+Section 4.2 — Delivery Schedule:
+"WidgetCo shall deliver 10,000 units of Model-X widgets by March 31, 2024.
+Failure to deliver within 14 days of this deadline constitutes a material breach."
+
+Section 7.1 — Payment Terms:
+"ACME Corp shall remit full payment of USD 250,000 within 30 days of confirmed delivery."
+
+Section 9.3 — Force Majeure:
+"Neither party shall be liable for delays caused by circumstances beyond their
+reasonable control, including natural disasters, acts of government, or supply
+chain disruptions certified by an independent auditor."

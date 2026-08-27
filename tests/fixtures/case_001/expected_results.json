@@ -1,0 +1,57 @@
+{
+  "case_id": "case_001",
+  "title": "ACME Corp v. WidgetCo — Breach of Supply Agreement",
+  "description": "ACME Corp alleges WidgetCo materially breached a supply agreement by failing to deliver 10,000 Model-X widgets by March 31, 2024. WidgetCo contends delivery was excused by a force majeure event (government export controls on chip supplier Fab-Taiwan). A secondary dispute concerns whether ACME made a prepayment of $125,000 before the alleged breach date.",
+  "parties": [
+    {"party_id": "P1", "name": "ACME Corp", "role": "plaintiff"},
+    {"party_id": "P2", "name": "WidgetCo", "role": "defendant"},
+    {"party_id": "P3", "name": "Marcus Chen", "role": "witness"}
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EV-001",
+      "description": "Supply agreement contract (Exhibits A)",
+      "source_type": "USER_PROVIDED",
+      "relevance_score": 0.95
+    },
+    {
+      "evidence_id": "EV-002",
+      "description": "Internal WidgetCo email thread (Exhibit B)",
+      "source_type": "USER_PROVIDED",
+      "relevance_score": 0.88
+    },
+    {
+      "evidence_id": "EV-003",
+      "description": "Witness statement — Marcus Chen (Exhibit C)",
+      "source_type": "USER_PROVIDED",
+      "relevance_score": 0.92
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "CL-001",
+      "statement": "ACME Corp made NO payment to WidgetCo prior to the alleged breach date of March 31, 2024.",
+      "made_by": "prosecution",
+      "related_evidence_ids": ["EV-002"],
+      "expected_status": "CONTRADICTED",
+      "reason": "EV-002 explicitly records a $125,000 prepayment received by WidgetCo on January 20, 2024 — directly contradicting the claim."
+    },
+    {
+      "claim_id": "CL-002",
+      "statement": "WidgetCo's delivery delay was excused by a valid force majeure event (government export controls on Fab-Taiwan).",
+      "made_by": "defense",
+      "related_evidence_ids": ["EV-001", "EV-002", "EV-003"],
+      "expected_status": "SUPPORTED",
+      "reason": "EV-001 contains the force majeure clause (§9.3); EV-002 shows timely force majeure notice; EV-003 is expert testimony authenticating the government notice and confirming no reasonable alternative."
+    }
+  ],
+  "legal_questions": [
+    "Did WidgetCo materially breach the supply agreement?",
+    "Is the force majeure clause in §9.3 applicable to the government export control event?",
+    "What damages, if any, does ACME Corp owe or is owed?"
+  ],
+  "expected_results": {
+    "CL-001": "CONTRADICTED",
+    "CL-002": "SUPPORTED"
+  }
+}

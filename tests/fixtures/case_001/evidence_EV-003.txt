@@ -1,0 +1,22 @@
+WITNESS STATEMENT — Marcus Chen, Independent Supply-Chain Auditor (Exhibit C)
+
+Sworn statement provided 2024-05-02 in Case No. CC-2024-0881
+
+"I, Marcus Chen, Certified Supply Chain Auditor (CSCA #4421), hereby confirm:
+
+1. I personally reviewed the export control notice FT-2024-EC-0291 issued by
+   Fab-Taiwan on February 28, 2024. This notice is authentic and constitutes
+   a government-mandated export restriction.
+
+2. In my professional opinion, the supply disruption caused by FT-2024-EC-0291
+   qualifies as a force majeure event under standard commercial contract terms,
+   specifically consistent with the language in Section 9.3 of the WidgetCo/ACME
+   Supply Agreement.
+
+3. I have NOT seen any evidence that WidgetCo could have sourced alternative
+   chip suppliers within the March 31, 2024 deadline at commercially
+   reasonable cost. I reviewed three alternative supplier quotes obtained
+   by WidgetCo; all quoted delivery timelines of 10–14 weeks.
+
+Signed: Marcus Chen, CSCA #4421
+Date: 2024-05-02"

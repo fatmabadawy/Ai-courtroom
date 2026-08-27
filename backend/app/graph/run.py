@@ -1,0 +1,230 @@
+"""
+backend/app/graph/run.py
+─────────────────────────
+Graph invocation interface — INTERFACES.md §7.
+
+Public API (what Plan E codes against):
+    run_trial(case_id: str) -> CourtroomState
+    resume_trial(case_id: str, intervention: Optional[HumanIntervention]) -> CourtroomState
+
+Checkpointing (PLAN_D):
+  - Backed by Postgres when DATABASE_URL is set.
+  - Falls back to LangGraph's in-memory MemorySaver when DATABASE_URL is unset
+    or on import failure (follows same mock-flag pattern as USE_MOCK_RAG).
+
+Human-in-the-loop (PLAN_D):
+  - Uses LangGraph ≥ 0.2 interrupt() / Command pattern
+    (DEVIATION #1: version-specific API, documented in implementation_plan.md).
+  - Interrupt is raised by needs_human_input_node; resume sends a Command.
+
+Mid-trial re-run (PLAN_D):
+  - When new evidence arrives, only re-runs Prosecution/Defense/Fact-Check
+    for claims flagged needs_reassessment in unresolved_questions.
+
+USE_MOCK_GRAPH flag:
+  - When true, delegates to graph/run_mock.py (for Plan E dev).
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Optional
+
+from backend.app.config import DATABASE_URL, USE_MOCK_GRAPH
+from backend.app.graph.state import CourtroomState
+from backend.app.models.schemas import HumanIntervention, JudgeProfile
+
+logger = logging.getLogger(__name__)
+
+
+# ── Checkpointer factory ───────────────────────────────────────────────────────
+
+def _make_checkpointer():
+    """
+    Return a LangGraph checkpointer.
+    Postgres when DATABASE_URL is set; MemorySaver otherwise.
+    """
+    if DATABASE_URL:
+        try:
+            from langgraph.checkpoint.postgres import PostgresSaver
+            conn = PostgresSaver.from_conn_string(DATABASE_URL)
+            conn.setup()  # creates checkpoint tables if they don't exist
+            logger.info("Using Postgres checkpointer: %s", DATABASE_URL[:30] + "…")
+            return conn
+        except Exception as exc:
+            logger.warning(
+                "Postgres checkpointer unavailable (%s) — falling back to MemorySaver.",
+                exc,
+            )
+
+    from langgraph.checkpoint.memory import MemorySaver
+    logger.info("Using in-memory MemorySaver (no persistence across restarts).")
+    return MemorySaver()
+
+
+# ── Initial state factory ─────────────────────────────────────────────────────
+
+def _initial_state(
+    case_id: str,
+    case_description: str,
+    judge_profile: str = "balanced",
+) -> CourtroomState:
+    return {
+        "case_id": case_id,
+        "case_description": case_description,
+        "parties": [],
+        "claims": [],
+        "legal_questions": [],
+        "evidence_ids": [],
+        "prosecution_arguments": [],
+        "defense_arguments": [],
+        "fact_checks": [],
+        "evidence_quality": {},
+        "cross_examinations": [],
+        "unresolved_questions": [],
+        "human_intervention": None,
+        "judge_configuration": JudgeProfile(name=judge_profile),
+        "verdict": None,
+        "round": 1,
+    }
+
+
+# ── Case description loader ────────────────────────────────────────────────────
+
+def _load_case_description(case_id: str) -> str:
+    """
+    Load case description text.  In production this queries the database.
+    For now, returns a synthetic description for case_001; raises for others.
+    """
+    _SYNTHETIC_CASES = {
+        "case_001": (
+            "ACME Corp v. WidgetCo — Breach of Supply Agreement. "
+            "ACME Corp alleges WidgetCo materially breached a supply agreement by "
+            "failing to deliver 10,000 Model-X widgets by March 31, 2024. "
+            "WidgetCo contends delivery was excused by a force majeure event "
+            "(government export controls on chip supplier Fab-Taiwan). "
+            "A secondary dispute concerns whether ACME made a prepayment of "
+            "$125,000 before the alleged breach date."
+        ),
+    }
+    if case_id in _SYNTHETIC_CASES:
+        return _SYNTHETIC_CASES[case_id]
+    raise ValueError(
+        f"case_id={case_id!r} not found. "
+        "In production, load from the database. "
+        "For tests, use 'case_001' or inject case_description directly."
+    )
+
+
+# ── Public API ─────────────────────────────────────────────────────────────────
+
+def run_trial(case_id: str) -> CourtroomState:
+    """
+    Build and run the full courtroom graph from scratch.
+
+    Parameters
+    ----------
+    case_id: str — The case to run.
+
+    Returns
+    -------
+    Final CourtroomState after the verdict is produced.
+    """
+    if USE_MOCK_GRAPH:
+        from backend.app.graph.run_mock import run_trial as _mock_run
+        return _mock_run(case_id)
+
+    from backend.app.graph.build_graph import build_graph
+
+    checkpointer = _make_checkpointer()
+    graph = build_graph(checkpointer=checkpointer)
+
+    case_description = _load_case_description(case_id)
+    initial = _initial_state(case_id, case_description)
+
+    config = {"configurable": {"thread_id": case_id}}
+
+    logger.info("Starting trial: case_id=%r", case_id)
+
+    try:
+        final_state = graph.invoke(initial, config=config)
+    except Exception as exc:
+        # LangGraph raises an interrupt exception when the graph pauses
+        # for human input.  Callers should call resume_trial() with an
+        # intervention to continue.
+        if "interrupt" in type(exc).__name__.lower() or "graphinterrupt" in type(exc).__name__.lower():
+            logger.info("Trial paused for human input: case_id=%r", case_id)
+            raise
+        raise
+
+    logger.info(
+        "Trial complete: case_id=%r verdict=%r",
+        case_id,
+        final_state.get("verdict", {}).get("finding") if final_state.get("verdict") else None,
+    )
+    return final_state
+
+
+def resume_trial(
+    case_id: str,
+    intervention: Optional[HumanIntervention] = None,
+) -> CourtroomState:
+    """
+    Resume a paused trial, optionally injecting a HumanIntervention.
+
+    Parameters
+    ----------
+    case_id: str — The case to resume.
+    intervention: HumanIntervention | None
+        New evidence/affected claims provided by the human reviewer.
+        If provided, claims whose claim_id is in intervention.affected_claim_ids
+        are flagged for re-evaluation (mid-trial re-run logic).
+
+    Returns
+    -------
+    Final CourtroomState after the verdict is produced.
+    """
+    if USE_MOCK_GRAPH:
+        from backend.app.graph.run_mock import resume_trial as _mock_resume
+        return _mock_resume(case_id, intervention)
+
+    from langgraph.types import Command
+    from backend.app.graph.build_graph import build_graph
+
+    checkpointer = _make_checkpointer()
+    graph = build_graph(checkpointer=checkpointer)
+    config = {"configurable": {"thread_id": case_id}}
+
+    # Build resume payload
+    resume_state: dict = {}
+    if intervention:
+        resume_state["human_intervention"] = intervention.model_dump()
+        # Flag affected claims for reassessment (mid-trial re-run, PLAN_D)
+        resume_state["unresolved_questions"] = _flag_reassessment_claims(
+            intervention.affected_claim_ids
+        )
+
+    logger.info("Resuming trial: case_id=%r intervention=%r", case_id, intervention)
+
+    try:
+        # LangGraph ≥ 0.2: send a Command with resume value
+        final_state = graph.invoke(
+            Command(resume=resume_state),
+            config=config,
+        )
+    except Exception as exc:
+        logger.error("resume_trial error for case_id=%r: %s", case_id, exc)
+        raise
+
+    return final_state
+
+
+def _flag_reassessment_claims(affected_claim_ids: list[str]) -> list[str]:
+    """
+    Create unresolved_question entries that signal mid-trial re-run
+    for the specified claims.
+    """
+    return [
+        f"needs_reassessment: claim_id={cid!r} — new evidence injected by human reviewer"
+        for cid in affected_claim_ids
+    ]

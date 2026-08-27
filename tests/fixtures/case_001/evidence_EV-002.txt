@@ -1,0 +1,26 @@
+EMAIL THREAD — Internal WidgetCo Communications (Exhibit B)
+
+From: sarah.ops@widgetco.com
+To: ceo@widgetco.com
+Date: 2024-03-10
+
+Subject: RE: ACME Delivery — URGENT
+
+"We cannot meet the March 31st deadline. Our primary chip supplier (Fab-Taiwan)
+halted shipments on February 28th due to government export controls — this is
+documented in their official notice (FT-2024-EC-0291). We will be at least
+6 weeks late. I recommend we invoke Section 9.3 force majeure immediately."
+
+─────────────────────────────────────────
+From: ceo@widgetco.com
+To: sarah.ops@widgetco.com
+Date: 2024-03-11
+
+Subject: RE: ACME Delivery — URGENT
+
+"Agreed. Draft the force majeure notice today. Also, we already received ACME's
+prepayment of $125,000 on January 20th — we must NOT invoice the remaining
+$125,000 until we confirm delivery."
+
+[NOTE: The prepayment receipt contradicts ACME's claim that no payment was made
+prior to the alleged breach date.]
