@@ -1,0 +1,53 @@
+version: '3.8'
+
+# ==============================================================================
+# AI COURTROOM — DOCKER COMPOSE
+# Note: Member A owns the authoritative docker-compose.yml file.
+# This starter file provides services for Member E (FastAPI + React Frontend)
+# with stub service blocks for when Members A/B/C/D integrate their containers.
+# ==============================================================================
+
+services:
+  # ─── Member E Services ───────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=development
+      - USE_MOCK_GRAPH=true
+      - USE_MOCK_RAG=true
+      - DB_BACKEND=sqlite
+      - SQLITE_PATH=/app/data/courtroom.db
+      - SECRET_KEY=insecure_dev_secret_key_change_in_production
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+      - N8N_SERVICE_TOKEN=insecure_n8n_token_change_in_production
+    volumes:
+      - ./backend:/app
+      - backend-data:/app/data
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+
+  # ─── Member A Database (Stub for local Postgres+pgvector) ───────────────────
+  # postgres:
+  #   image: pgvector/pgvector:pg16
+  #   environment:
+  #     POSTGRES_USER: courtroom_user
+  #     POSTGRES_PASSWORD: courtroom_password
+  #     POSTGRES_DB: courtroom
+  #   ports:
+  #     - "5432:5432"
+
+volumes:
+  backend-data:
