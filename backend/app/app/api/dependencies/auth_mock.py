@@ -18,7 +18,7 @@ from typing import Optional
 
 from jose import JWTError, jwt
 
-from app.api.config import get_settings
+from backend.app.api.config import get_settings
 
 settings = get_settings()
 

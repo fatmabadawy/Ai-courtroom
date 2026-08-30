@@ -27,7 +27,7 @@ from typing import Any, AsyncGenerator, Dict, List, Optional
 
 import aiosqlite
 
-from app.api.config import get_settings
+from backend.app.api.config import get_settings
 
 settings = get_settings()
 

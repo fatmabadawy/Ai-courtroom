@@ -14,10 +14,10 @@ from __future__ import annotations
 import json
 from typing import Optional
 
-from app.api.config import get_settings
-from app.api.database import adapter as db
-from app.graph.state import CourtroomState
-from app.models.schemas import HumanIntervention, Verdict
+from backend.app.api.config import get_settings
+from backend.app.api.database import adapter as db
+from backend.app.graph.state import CourtroomState
+from backend.app.models.schemas import HumanIntervention, Verdict
 
 settings = get_settings()
 
@@ -25,9 +25,9 @@ settings = get_settings()
 def _get_graph():
     """Return the correct graph module based on the env flag."""
     if settings.use_mock_graph:
-        import app.graph.run_mock as graph_module
+        import backend.app.graph.run_mock as graph_module
     else:
-        import app.graph.run as graph_module  # type: ignore — C/D will ship this
+        import backend.app.graph.run as graph_module  # type: ignore — C/D will ship this
     return graph_module
 
 

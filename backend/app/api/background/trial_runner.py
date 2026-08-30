@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 
-from app.api.services import trial_service
+from backend.app.api.services import trial_service
 
 
 async def run_trial_background(case_id: str, judge_profile: str = "balanced") -> None:

@@ -13,10 +13,10 @@ from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.api.database import adapter as db
-from app.api.dependencies.auth import get_current_user
-from app.api.services.search_service import search_public_cases
-from app.models.schemas import CaseRow, CreateCaseRequest, PublicSearchRequest
+from backend.app.api.database import adapter as db
+from backend.app.api.dependencies.auth import get_current_user
+from backend.app.api.services.search_service import search_public_cases
+from backend.app.models.schemas import CaseRow, CreateCaseRequest, PublicSearchRequest
 
 router = APIRouter(prefix="/cases", tags=["cases"])
 

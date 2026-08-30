@@ -14,14 +14,14 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.api.database import adapter as db
-from app.api.dependencies.auth import get_current_user
-from app.api.services.evidence_service import build_evidence_graph, build_replay
-from app.models.schemas import (
+from backend.app.api.database import adapter as db
+from backend.app.api.dependencies.auth import get_current_user
+from backend.app.api.services.evidence_service import build_evidence_graph, build_replay
+from backend.app.api.schemas import (
     EvidenceGraphResponse,
     ReplayResponse,
-    Verdict,
 )
+from backend.app.models.schemas import Verdict
 
 router = APIRouter(tags=["evidence"])
 

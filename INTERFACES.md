@@ -42,6 +42,14 @@ Full DDL is in `IMPLEMENTATION_PLAN.md §8`. Every member builds against **these
 
 ## 3. Core Pydantic schemas (verbatim — copy into `backend/app/models/schemas.py`, owned jointly, edits require team notice)
 
+### Documented deviations
+
+- `Argument` includes a required `argument_id: str` immediately before
+  `claim_id`. This is the stable identifier referenced by
+  `CrossExaminationRound.target_argument_id` and
+  `Argument.responds_to_argument_id`. Implementations generate it as
+  `"{side}-{claim_id}-r{round}"`.
+
 ```python
 from typing import List, Optional, Literal
 from datetime import date
@@ -89,6 +97,7 @@ class EvidenceResult(BaseModel):
     relevance_score: float
 
 class Argument(BaseModel):
+    argument_id: str
     claim_id: str
     argument: str
     evidence_ids: List[str]

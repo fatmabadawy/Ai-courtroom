@@ -11,13 +11,14 @@ The single `_get_graph()` function is the swap point.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Optional
 
-from app.api.config import get_settings
-from app.api.database import adapter as db
-from app.graph.state import CourtroomState
-from app.models.schemas import HumanIntervention, Verdict
+from backend.app.api.config import get_settings
+from backend.app.api.database import adapter as db
+from backend.app.graph.state import CourtroomState
+from backend.app.models.schemas import HumanIntervention
 
 settings = get_settings()
 
@@ -25,9 +26,9 @@ settings = get_settings()
 def _get_graph():
     """Return the correct graph module based on the env flag."""
     if settings.use_mock_graph:
-        import app.graph.run_mock as graph_module
+        import backend.app.graph.run_mock as graph_module
     else:
-        import app.graph.run as graph_module  # type: ignore — C/D will ship this
+        import backend.app.graph.run as graph_module  # type: ignore — C/D will ship this
     return graph_module
 
 
@@ -46,7 +47,9 @@ async def start_trial(case_id: str, judge_profile: str = "balanced") -> None:
 
     try:
         graph = _get_graph()
-        state: CourtroomState = await graph.run_trial(case_id)
+        # INTERFACES.md §7 defines synchronous graph functions.  Offload the
+        # CPU/blocking graph invocation so FastAPI's event loop remains free.
+        state: CourtroomState = await asyncio.to_thread(graph.run_trial, case_id)
 
         # Persist verdict if present
         if state.get("verdict"):
@@ -89,7 +92,9 @@ async def resume_trial_service(
     """Resume an interrupted trial, optionally injecting human intervention."""
     await db.upsert_trial_status(case_id, "running")
     graph = _get_graph()
-    state: CourtroomState = await graph.resume_trial(case_id, intervention)
+    state: CourtroomState = await asyncio.to_thread(
+        graph.resume_trial, case_id, intervention
+    )
 
     if state.get("verdict"):
         verdict_dict = state["verdict"]

@@ -17,9 +17,9 @@ from typing import Any, Dict, List
 import aiofiles
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
-from app.api.config import get_settings
-from app.api.database import adapter as db
-from app.api.dependencies.auth import get_current_user
+from backend.app.api.config import get_settings
+from backend.app.api.database import adapter as db
+from backend.app.api.dependencies.auth import get_current_user
 
 settings = get_settings()
 router = APIRouter(tags=["documents"])
@@ -41,7 +41,7 @@ def _get_ingest_fn():
     otherwise return the local stub.
     """
     try:
-        from app.ingestion.ingest import ingest_document  # Member B's real module
+        from backend.app.ingestion.ingest import ingest_document  # Member B's real module
         return ingest_document
     except ImportError:
         return _stub_ingest

@@ -18,9 +18,9 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.config import get_settings
-from app.api.database.adapter import init_db
-from app.api.routers import auth, cases, documents, evidence, n8n_internal, trial
+from backend.app.api.config import get_settings
+from backend.app.api.database.adapter import init_db
+from backend.app.api.routers import auth, cases, documents, evidence, n8n_internal, trial
 
 settings = get_settings()
 
@@ -47,7 +47,7 @@ def create_app() -> FastAPI:
     )
 
     # ── CORS ─────────────────────────────────────────────────────────────────
-    app.add_middleware(
+    backend.app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,
         allow_credentials=True,
@@ -56,7 +56,7 @@ def create_app() -> FastAPI:
     )
 
     # ── Global error handlers ─────────────────────────────────────────────────
-    @app.exception_handler(Exception)
+    @backend.app.exception_handler(Exception)
     async def generic_error_handler(request: Request, exc: Exception) -> JSONResponse:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -68,15 +68,15 @@ def create_app() -> FastAPI:
         )
 
     # ── Routers ───────────────────────────────────────────────────────────────
-    app.include_router(auth.router)
-    app.include_router(cases.router)
-    app.include_router(documents.router)
-    app.include_router(trial.router)
-    app.include_router(evidence.router)
-    app.include_router(n8n_internal.router)
+    backend.app.include_router(auth.router)
+    backend.app.include_router(cases.router)
+    backend.app.include_router(documents.router)
+    backend.app.include_router(trial.router)
+    backend.app.include_router(evidence.router)
+    backend.app.include_router(n8n_internal.router)
 
     # ── Health check ──────────────────────────────────────────────────────────
-    @app.get("/health", tags=["health"])
+    @backend.app.get("/health", tags=["health"])
     async def health() -> Dict[str, Any]:
         return {
             "status": "ok",

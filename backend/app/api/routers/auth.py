@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, status
 
-from app.api.database import adapter as db
-from app.api.dependencies.auth_mock import (
+from backend.app.api.database import adapter as db
+from backend.app.api.dependencies.auth_mock import (
     create_access_token,
     create_refresh_token,
     decode_refresh_token,
@@ -20,7 +20,7 @@ from app.api.dependencies.auth_mock import (
     hash_token,
     verify_password,
 )
-from app.models.schemas import (
+from backend.app.api.schemas import (
     ErrorResponse,
     LoginRequest,
     RefreshRequest,

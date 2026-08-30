@@ -6,17 +6,17 @@ Provides schema-valid CourtroomState with a populated Verdict.
 
 Usage (controlled by USE_MOCK_GRAPH env var):
     if settings.USE_MOCK_GRAPH:
-        from app.graph.run_mock import run_trial, resume_trial
+        from backend.app.graph.run_mock import run_trial, resume_trial
     else:
-        from app.graph.run import run_trial, resume_trial
+        from backend.app.graph.run import run_trial, resume_trial
 """
 from __future__ import annotations
 
 import asyncio
 from typing import Optional
 
-from app.graph.state import CourtroomState
-from app.models.schemas import (
+from backend.app.graph.state import CourtroomState
+from backend.app.models.schemas import (
     Argument,
     Claim,
     CrossExaminationRound,

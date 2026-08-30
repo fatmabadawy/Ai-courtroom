@@ -10,9 +10,9 @@ from __future__ import annotations
 
 from typing import List
 
-from app.api.database import adapter as db
-from app.api.config import get_settings
-from app.models.schemas import (
+from backend.app.api.database import adapter as db
+from backend.app.api.config import get_settings
+from backend.app.api.schemas import (
     AgentMessage,
     EvidenceGraphResponse,
     GraphEdge,

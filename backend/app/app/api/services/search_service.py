@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
-from app.api.config import get_settings
+from backend.app.api.config import get_settings
 
 settings = get_settings()
 

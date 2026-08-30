@@ -3,7 +3,7 @@ backend/app/models/schemas.py
 ─────────────────────────────
 Verbatim copy of INTERFACES.md §3 Pydantic schemas.
 
-DEVIATION (flagged in implementation_plan.md, Open Question #5):
+DOCUMENTED DEVIATION (INTERFACES.md §3):
   `Argument` gains one additional field:
       argument_id: str
   Reason: `CrossExaminationRound.target_argument_id` and
@@ -73,7 +73,7 @@ class EvidenceResult(BaseModel):
 
 
 class Argument(BaseModel):
-    # DEVIATION: argument_id added (see module docstring).
+    # Documented INTERFACES.md §3 deviation.
     argument_id: str
     claim_id: str
     argument: str

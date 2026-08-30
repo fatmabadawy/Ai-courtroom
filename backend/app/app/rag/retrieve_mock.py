@@ -5,15 +5,15 @@ INTERFACES.md §6 — Mock RAG retrieve() for Member E to use before B ships the
 
 Usage (controlled by USE_MOCK_RAG env var):
     if settings.USE_MOCK_RAG:
-        from app.rag.retrieve_mock import retrieve
+        from backend.app.rag.retrieve_mock import retrieve
     else:
-        from app.rag.retrieve import retrieve
+        from backend.app.rag.retrieve import retrieve
 """
 from __future__ import annotations
 
 from typing import List, Optional
 
-from app.models.schemas import EvidenceResult
+from backend.app.models.schemas import EvidenceResult
 
 
 def retrieve(

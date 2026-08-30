@@ -12,11 +12,11 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 
-from app.api.background.trial_runner import run_trial_background
-from app.api.database import adapter as db
-from app.api.dependencies.auth import get_current_user
-from app.api.services.trial_service import resume_trial_service
-from app.models.schemas import (
+from backend.app.api.background.trial_runner import run_trial_background
+from backend.app.api.database import adapter as db
+from backend.app.api.dependencies.auth import get_current_user
+from backend.app.api.services.trial_service import resume_trial_service
+from backend.app.models.schemas import (
     InterventionRequest,
     StartTrialRequest,
     TrialStateResponse,
@@ -140,6 +140,6 @@ async def _resume_background(case_id: str) -> None:
     intervention_data = snapshot.get("human_intervention")
     intervention = None
     if intervention_data:
-        from app.models.schemas import HumanIntervention
+        from backend.app.models.schemas import HumanIntervention
         intervention = HumanIntervention(**intervention_data)
     await resume_trial_service(case_id, intervention)

@@ -11,8 +11,8 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 
-from app.api.config import get_settings
-from app.api.database import adapter as db
+from backend.app.api.config import get_settings
+from backend.app.api.database import adapter as db
 
 settings = get_settings()
 router = APIRouter(prefix="/internal", tags=["n8n-internal"])

@@ -13,7 +13,7 @@ import pytest
 from httpx import AsyncClient
 from pydantic import ValidationError
 
-from app.models.schemas import (
+from backend.app.models.schemas import (
     EvidenceGraphResponse,
     ReplayResponse,
     TokenResponse,

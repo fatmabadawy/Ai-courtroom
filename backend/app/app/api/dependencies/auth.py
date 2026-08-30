@@ -7,10 +7,10 @@ Currently bridges to auth_mock.py (Member E internal).
 When Member A ships database/auth.py, replace the import at the top:
 
   # BEFORE (mock)
-  from app.api.dependencies.auth_mock import decode_access_token
+  from backend.app.api.dependencies.auth_mock import decode_access_token
 
   # AFTER (Member A's real module)
-  from app.database.auth import decode_access_token
+  from backend.app.database.auth import decode_access_token
 """
 from __future__ import annotations
 
@@ -19,8 +19,8 @@ from typing import Dict, Optional
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.api.database.adapter import get_user_by_id
-from app.api.dependencies.auth_mock import decode_access_token  # ← swap to A's module when ready
+from backend.app.api.database.adapter import get_user_by_id
+from backend.app.api.dependencies.auth_mock import decode_access_token  # ← swap to A's module when ready
 
 bearer_scheme = HTTPBearer(auto_error=False)
 

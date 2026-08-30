@@ -17,9 +17,9 @@ os.environ["DB_BACKEND"] = "sqlite"
 os.environ["SECRET_KEY"] = "test_secret_key_for_testing_only"
 os.environ["N8N_SERVICE_TOKEN"] = "test_n8n_token"
 
-from app.api.main import app
-from app.api.database import adapter as db_module
-from app.api.config import get_settings
+from backend.app.api.main import app
+from backend.app.api.database import adapter as db_module
+from backend.app.api.config import get_settings
 
 
 @pytest_asyncio.fixture(autouse=True)

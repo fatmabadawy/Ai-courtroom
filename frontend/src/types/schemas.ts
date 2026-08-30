@@ -57,6 +57,7 @@ export interface EvidenceResult {
 }
 
 export interface Argument {
+  argument_id: string
   claim_id: string
   argument: string
   evidence_ids: string[]

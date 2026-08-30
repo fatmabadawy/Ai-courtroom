@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, TypedDict
 # These imports work once the full repo is assembled.
 # During bootstrapping Member E also provides them via models/schemas.py.
 try:
-    from app.models.schemas import (
+    from backend.app.models.schemas import (
         Argument,
         Claim,
         CrossExaminationRound,
