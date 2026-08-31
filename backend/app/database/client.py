@@ -204,9 +204,25 @@ async def save_verdict(case_id: str, verdict: dict[str, Any]) -> str:
     verdict_id, now = _id(), _now()
     fields = (json.dumps(verdict.get("supporting_evidence_ids", [])), json.dumps(verdict.get("opposing_evidence_ids", [])), json.dumps(verdict.get("unresolved_questions", [])))
     async with get_db() as conn:
-        await conn.execute("INSERT INTO verdicts VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (verdict_id, case_id, verdict["finding"], verdict["reasoning"], verdict["confidence"], verdict["judge_profile"], *fields, verdict["disclaimer"], now))
+        await conn.execute("INSERT INTO verdicts VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (verdict_id, case_id, verdict["finding"], verdict["reasoning"], verdict["confidence"], verdict["judge_profile"], *fields, verdict["disclaimer"], now))
         for relation, ids in (("supporting", verdict.get("supporting_evidence_ids", [])), ("opposing", verdict.get("opposing_evidence_ids", []))):
             for evidence_id in ids:
+                # Verdicts (especially from the mock graph) may cite evidence_ids
+                # that never went through document ingestion for this case, so
+                # they don't exist in `evidence` yet. Backfill a minimal
+                # placeholder row so the verdict_evidence FK is satisfiable —
+                # otherwise a mock-graph trial would fail to persist entirely.
+                async with conn.execute(
+                    "SELECT 1 FROM evidence WHERE evidence_id = ?", (evidence_id,)
+                ) as cur:
+                    exists = await cur.fetchone()
+                if not exists:
+                    await conn.execute(
+                        "INSERT OR IGNORE INTO evidence "
+                        "(evidence_id, case_id, content, source_type, relevance_score, created_at) "
+                        "VALUES (?, ?, ?, ?, ?, ?)",
+                        (evidence_id, case_id, "(evidence content not ingested — cited by verdict only)", "SYNTHETIC", 0.0, now),
+                    )
                 await conn.execute("INSERT OR IGNORE INTO verdict_evidence VALUES (?, ?, ?)", (verdict_id, evidence_id, relation))
         await conn.commit()
     return verdict_id

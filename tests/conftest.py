@@ -26,8 +26,18 @@ def force_mock_env(monkeypatch):
     import backend.app.config as cfg
     monkeypatch.setattr(cfg, "USE_MOCK_RAG", True)
     monkeypatch.setattr(cfg, "USE_MOCK_LLM", True)
+    monkeypatch.setattr(cfg, "USE_MOCK_GRAPH", False)
     import backend.app.llm_client as llm
     monkeypatch.setattr(llm, "USE_MOCK_LLM", True)
+    # backend.app.graph.run does `from backend.app.config import USE_MOCK_GRAPH`
+    # at import time, binding its OWN module-level name — patching cfg above
+    # does not reach it once run.py has already been imported (e.g. by
+    # backend/tests/conftest.py setting env vars at collection time, before
+    # this fixture ever runs). Without this, a combined `pytest tests/
+    # backend/tests/` run leaks USE_MOCK_GRAPH=True into every test/*.py
+    # test, silently routing run_trial() to the mock graph.
+    import backend.app.graph.run as run_mod
+    monkeypatch.setattr(run_mod, "USE_MOCK_GRAPH", False)
 
 
 # ── Fixture case ──────────────────────────────────────────────────────────────

@@ -33,3 +33,10 @@ Thumbs.db
 node_modules/ 
 .env 
 dist/ 
+
+# Runtime SQLite databases (generated, not source)
+*.sqlite3
+*.db
+courtroom.sqlite3
+courtroom_dev.db
+courtroom_checkpoints.sqlite3

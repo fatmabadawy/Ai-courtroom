@@ -11,7 +11,7 @@ load_dotenv(override=False)  # won't overwrite values already in the environment
 
 
 # ── RAG ──────────────────────────────────────────────────────────────────────
-USE_MOCK_RAG: bool = os.getenv("USE_MOCK_RAG", "true").lower() == "true"
+USE_MOCK_RAG: bool = os.getenv("USE_MOCK_RAG", "false").lower() == "true"
 
 # ── LLM ──────────────────────────────────────────────────────────────────────
 USE_MOCK_LLM: bool = os.getenv("USE_MOCK_LLM", "true").lower() == "true"

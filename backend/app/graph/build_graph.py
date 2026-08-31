@@ -17,6 +17,7 @@ All node *logic* lives in agents/*.py — this file stays small.
 from __future__ import annotations
 
 from langgraph.graph import StateGraph, START, END
+from langgraph.types import interrupt
 
 from backend.app.graph.state import CourtroomState
 
@@ -63,14 +64,30 @@ def evidence_node(state: CourtroomState) -> CourtroomState:
 
 def needs_human_input_node(state: CourtroomState) -> CourtroomState:
     """
-    Passthrough node that exposes the human-intervention checkpoint.
-    LangGraph's interrupt() is called here when the graph detects unresolved
-    questions that require human input.  The actual interrupt/resume logic
-    lives in graph/run.py.
+    Pauses the graph for human input when unresolved questions require it.
+
+    Calls LangGraph's `interrupt()`, which raises a GraphInterrupt exception
+    that propagates up through `graph.invoke()` in run.py — this is what
+    actually stops execution here (a mere passthrough would not pause
+    anything; the conditional edge only decides *whether* to route here,
+    not whether the graph stops).
+
+    On resume (via `graph.invoke(Command(resume=...), config=...)` in
+    run.py's `resume_trial`), LangGraph re-enters this node and `interrupt()`
+    returns the value passed to `Command(resume=...)` instead of raising,
+    letting execution continue to the judge node.
     """
-    # The interrupt call is issued by run.py's checkpointing wrapper.
-    # This node itself just passes state through — the conditional edge below
-    # decides whether to pause here.
+    payload = interrupt(
+        {
+            "reason": "unresolved_questions_require_human_input",
+            "unresolved_questions": state.get("unresolved_questions", []),
+            "case_id": state.get("case_id"),
+        }
+    )
+    # `payload` is whatever resume_trial's Command(resume=...) supplied —
+    # typically a HumanIntervention dict. Fold it into state if present.
+    if payload:
+        return {**state, "human_intervention": payload}
     return state
 
 

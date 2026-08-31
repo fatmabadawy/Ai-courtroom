@@ -1,0 +1,46 @@
+# AI Courtroom — consolidated dependencies
+# Install with: pip install -r requirements.txt
+# (equivalent to installing both pyproject.toml and backend/pyproject.toml's
+#  dependencies together, for anyone who prefers requirements.txt)
+
+# Graph / agents
+langgraph>=0.2.0
+langgraph-checkpoint-sqlite>=2.0.0
+langgraph-checkpoint-postgres>=0.1.0
+langchain-core>=0.2.0
+langchain-openai>=0.1.0
+
+# Schema / validation
+pydantic>=2.7.0
+pydantic-settings>=2.3.0
+
+# API
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-multipart>=0.0.9
+
+# Database
+aiosqlite>=0.20.0
+psycopg2-binary>=2.9.9
+
+# Ingestion (Plan B)
+pypdf>=5.0.0
+python-docx>=1.1.0
+
+# RAG embeddings (Plan B) — local, no paid API
+sentence-transformers>=3.0.0
+scikit-learn>=1.5.0
+numpy>=1.26.0
+
+# Utilities
+python-dotenv>=1.0.0
+httpx>=0.27.0
+aiofiles>=23.2.1
+
+# Dev / testing
+pytest>=8.2.0
+pytest-asyncio>=0.23.0
+pytest-cov>=5.0.0
+anyio>=4.4.0

@@ -41,10 +41,23 @@ logger = logging.getLogger(__name__)
 
 def _make_checkpointer():
     """
-    Return a LangGraph checkpointer.
-    Postgres when DATABASE_URL is set; MemorySaver otherwise.
+    Return a LangGraph checkpointer, backed by real persistent storage so a
+    trial paused on human input (via `interrupt()` in build_graph.py) can
+    actually be resumed later — a fresh `MemorySaver()` on every call would
+    silently discard that paused state, since `run_trial` and `resume_trial`
+    each construct their own checkpointer instance.
+
+    - `postgresql://...` DATABASE_URL → Postgres checkpointer.
+    - `sqlite:///...` DATABASE_URL (this project's default — see
+      backend/app/database/client.py) → file-backed SqliteSaver pointed at
+      the same on-disk file, so state survives across calls/process
+      restarts.
+    - Anything else / no DATABASE_URL → in-memory MemorySaver as a last
+      resort. NOTE: this cannot support interrupt/resume across separate
+      run_trial/resume_trial calls — it only works within a single
+      long-lived process holding onto the same checkpointer instance.
     """
-    if DATABASE_URL:
+    if DATABASE_URL and DATABASE_URL.startswith("postgresql"):
         try:
             from langgraph.checkpoint.postgres import PostgresSaver
             conn = PostgresSaver.from_conn_string(DATABASE_URL)
@@ -53,12 +66,35 @@ def _make_checkpointer():
             return conn
         except Exception as exc:
             logger.warning(
-                "Postgres checkpointer unavailable (%s) — falling back to MemorySaver.",
+                "Postgres checkpointer unavailable (%s) — falling back to SqliteSaver.",
+                exc,
+            )
+
+    if DATABASE_URL and DATABASE_URL.startswith("sqlite:///"):
+        try:
+            import sqlite3
+            from pathlib import Path
+            from langgraph.checkpoint.sqlite import SqliteSaver
+
+            db_path = DATABASE_URL.removeprefix("sqlite:///") or "courtroom.sqlite3"
+            checkpoint_path = str(Path(db_path).with_name(Path(db_path).stem + "_checkpoints.sqlite3"))
+            conn = sqlite3.connect(checkpoint_path, check_same_thread=False)
+            saver = SqliteSaver(conn)
+            saver.setup()
+            logger.info("Using SQLite checkpointer: %s", checkpoint_path)
+            return saver
+        except Exception as exc:
+            logger.warning(
+                "SQLite checkpointer unavailable (%s) — falling back to MemorySaver "
+                "(interrupt/resume will NOT work across separate calls).",
                 exc,
             )
 
     from langgraph.checkpoint.memory import MemorySaver
-    logger.info("Using in-memory MemorySaver (no persistence across restarts).")
+    logger.warning(
+        "Using in-memory MemorySaver — no DATABASE_URL set. "
+        "Human-input interrupt/resume will NOT persist across separate calls."
+    )
     return MemorySaver()
 
 
@@ -93,9 +129,32 @@ def _initial_state(
 
 def _load_case_description(case_id: str) -> str:
     """
-    Load case description text.  In production this queries the database.
-    For now, returns a synthetic description for case_001; raises for others.
+    Load case description text.
+
+    Tries the real database first (any case created via POST /cases will be
+    there). Falls back to a synthetic fixture for case_001 so tests and
+    offline/demo runs work without a database — but a real DB row always
+    takes precedence if one exists for that case_id.
     """
+    import sqlite3
+    from backend.app.database.client import database_path
+
+    try:
+        db_path = database_path()
+        if db_path.exists():
+            conn = sqlite3.connect(str(db_path))
+            try:
+                cur = conn.execute(
+                    "SELECT description FROM cases WHERE case_id = ?", (case_id,)
+                )
+                row = cur.fetchone()
+                if row is not None:
+                    return row[0]
+            finally:
+                conn.close()
+    except Exception as exc:
+        logger.warning("Could not read case_id=%r from database: %s", case_id, exc)
+
     _SYNTHETIC_CASES = {
         "case_001": (
             "ACME Corp v. WidgetCo — Breach of Supply Agreement. "
@@ -110,9 +169,8 @@ def _load_case_description(case_id: str) -> str:
     if case_id in _SYNTHETIC_CASES:
         return _SYNTHETIC_CASES[case_id]
     raise ValueError(
-        f"case_id={case_id!r} not found. "
-        "In production, load from the database. "
-        "For tests, use 'case_001' or inject case_description directly."
+        f"case_id={case_id!r} not found in the database or synthetic fixtures. "
+        "Create the case via POST /cases first, or use 'case_001' for tests."
     )
 
 
@@ -149,13 +207,21 @@ def run_trial(case_id: str) -> CourtroomState:
     try:
         final_state = graph.invoke(initial, config=config)
     except Exception as exc:
-        # LangGraph raises an interrupt exception when the graph pauses
-        # for human input.  Callers should call resume_trial() with an
-        # intervention to continue.
-        if "interrupt" in type(exc).__name__.lower() or "graphinterrupt" in type(exc).__name__.lower():
-            logger.info("Trial paused for human input: case_id=%r", case_id)
-            raise
+        logger.error("Unexpected error running trial: case_id=%r: %s", case_id, exc)
         raise
+
+    if final_state.get("__interrupt__"):
+        # LangGraph's interrupt() does not raise — it pauses the graph and
+        # returns the current state with a "__interrupt__" key describing
+        # why. Callers (e.g. E's trial_service) must check for this key and
+        # call resume_trial() with a HumanIntervention to continue; treating
+        # the presence of a verdict as the only "done" signal is not enough.
+        logger.info(
+            "Trial paused for human input: case_id=%r interrupt=%r",
+            case_id,
+            final_state["__interrupt__"],
+        )
+        return final_state
 
     logger.info(
         "Trial complete: case_id=%r verdict=%r",

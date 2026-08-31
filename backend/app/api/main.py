@@ -47,7 +47,7 @@ def create_app() -> FastAPI:
     )
 
     # ── CORS ─────────────────────────────────────────────────────────────────
-    backend.app.add_middleware(
+    app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,
         allow_credentials=True,
@@ -56,7 +56,7 @@ def create_app() -> FastAPI:
     )
 
     # ── Global error handlers ─────────────────────────────────────────────────
-    @backend.app.exception_handler(Exception)
+    @app.exception_handler(Exception)
     async def generic_error_handler(request: Request, exc: Exception) -> JSONResponse:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -68,15 +68,15 @@ def create_app() -> FastAPI:
         )
 
     # ── Routers ───────────────────────────────────────────────────────────────
-    backend.app.include_router(auth.router)
-    backend.app.include_router(cases.router)
-    backend.app.include_router(documents.router)
-    backend.app.include_router(trial.router)
-    backend.app.include_router(evidence.router)
-    backend.app.include_router(n8n_internal.router)
+    app.include_router(auth.router)
+    app.include_router(cases.router)
+    app.include_router(documents.router)
+    app.include_router(trial.router)
+    app.include_router(evidence.router)
+    app.include_router(n8n_internal.router)
 
     # ── Health check ──────────────────────────────────────────────────────────
-    @backend.app.get("/health", tags=["health"])
+    @app.get("/health", tags=["health"])
     async def health() -> Dict[str, Any]:
         return {
             "status": "ok",

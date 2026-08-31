@@ -51,6 +51,13 @@ async def start_trial(case_id: str, judge_profile: str = "balanced") -> None:
         # CPU/blocking graph invocation so FastAPI's event loop remains free.
         state: CourtroomState = await asyncio.to_thread(graph.run_trial, case_id)
 
+        # A trial paused for human input (needs_human_input_node calling
+        # LangGraph's interrupt()) returns normally from run_trial/invoke —
+        # it does NOT raise. LangGraph surfaces this via a "__interrupt__"
+        # key in the returned state rather than an exception. Detect it here
+        # so a paused trial is recorded as "paused", not "completed".
+        is_paused = bool(state.get("__interrupt__"))
+
         # Persist verdict if present
         if state.get("verdict"):
             verdict_dict = state["verdict"]
@@ -63,10 +70,18 @@ async def start_trial(case_id: str, judge_profile: str = "balanced") -> None:
 
         await db.upsert_trial_status(
             case_id,
-            "completed",
+            "paused" if is_paused else "completed",
             state.get("round", 1),
             _state_to_dict(state),
         )
+        if is_paused:
+            await db.append_agent_message(
+                case_id=case_id,
+                agent_name="system",
+                event_type="trial_paused",
+                content="Trial paused — awaiting human input (unresolved questions flagged for review).",
+            )
+            return
         await db.append_agent_message(
             case_id=case_id,
             agent_name="system",
@@ -114,9 +129,20 @@ async def resume_trial_service(
 
 def _state_to_dict(state: CourtroomState) -> dict:
     """Convert a CourtroomState to a JSON-serialisable dict."""
+    import dataclasses
+
     result = {}
     for k, v in state.items():
-        if hasattr(v, "model_dump"):
+        if k == "__interrupt__":
+            # LangGraph injects this list of `Interrupt` dataclass instances
+            # into the returned state when the graph pauses — it isn't part
+            # of the CourtroomState schema itself, but we keep a JSON-safe
+            # summary so the frontend can show *why* a trial is paused.
+            result[k] = [
+                dataclasses.asdict(item) if dataclasses.is_dataclass(item) else str(item)
+                for item in v
+            ]
+        elif hasattr(v, "model_dump"):
             result[k] = v.model_dump()
         elif isinstance(v, list):
             result[k] = [

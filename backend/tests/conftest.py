@@ -26,20 +26,35 @@ from backend.app.api.config import get_settings
 async def _fresh_db(tmp_path):
     """
     Give each test a brand-new SQLite file so connections never share state.
-    Patches the settings on both the config singleton and the adapter module.
+
+    The consolidated `backend.app.database.client` (re-exported here as
+    `db_module`) reads its DB location from the `DATABASE_URL` / `SQLITE_PATH`
+    env vars at call time (see `client.database_path()`), not from a cached
+    settings object — so the fixture patches those env vars instead of a
+    `settings.sqlite_path` attribute that no longer exists on this module.
     """
     db_file = str(tmp_path / "test.db")
     settings = get_settings()
-    # Patch the live settings object (lru_cached, so same instance everywhere)
     original_path = settings.sqlite_path
     settings.sqlite_path = db_file
-    db_module.settings.sqlite_path = db_file
+
+    original_database_url = os.environ.get("DATABASE_URL")
+    original_sqlite_path = os.environ.get("SQLITE_PATH")
+    os.environ["DATABASE_URL"] = f"sqlite:///{db_file}"
+    os.environ["SQLITE_PATH"] = db_file
 
     await db_module.init_db()
     yield
 
     settings.sqlite_path = original_path
-    db_module.settings.sqlite_path = original_path
+    if original_database_url is None:
+        os.environ.pop("DATABASE_URL", None)
+    else:
+        os.environ["DATABASE_URL"] = original_database_url
+    if original_sqlite_path is None:
+        os.environ.pop("SQLITE_PATH", None)
+    else:
+        os.environ["SQLITE_PATH"] = original_sqlite_path
 
 
 @pytest_asyncio.fixture
